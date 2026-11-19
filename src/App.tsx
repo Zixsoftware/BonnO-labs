@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
+  Activity, PanelsTopLeft, Workflow,
   AppWindow, Boxes, Braces, ChevronDown, CircleCheck,
   CodeXml, Database, Layers3, Mail, Menu, Orbit, Send, ShieldCheck,
   Smartphone, Sparkles, X,
@@ -9,6 +10,7 @@ import { WorldVisual } from './WorldVisual'
 
 const links = [
   ['Services', '#services'],
+  ['Solutions', '#solutions'],
   ['Technologies', '#technologies'],
   ['About', '#about'],
   ['Portfolio', '#portfolio'],
@@ -27,6 +29,21 @@ const technologies = [
   { title: 'Web & interface', icon: Braces, items: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS'] },
   { title: 'Mobile & automation', icon: Boxes, items: ['React Native', 'Flutter', 'Node.js', 'Python'] },
   { title: 'Data & delivery', icon: Database, items: ['PostgreSQL', 'Supabase', 'Firebase', 'Git', 'Docker'] },
+]
+
+const capabilities = [
+  { title: 'Web Development', icon: CodeXml, copy: 'Fast, accessible websites and web applications that make the next step clear.', tools: 'React · Next.js · TypeScript' },
+  { title: 'SaaS Development', icon: PanelsTopLeft, copy: 'Product foundations for customer accounts, subscriptions, and teams that need room to grow.', tools: 'Node.js · PostgreSQL · Supabase' },
+  { title: 'Mobile App Development', icon: Smartphone, copy: 'Focused iOS and Android experiences, from a first release to improvements based on how people use the app.', tools: 'React Native · Flutter · Firebase' },
+  { title: 'AI & Automation', icon: Sparkles, copy: 'Connect systems, reduce repetitive work, and give people a clear way to review automated decisions.', tools: 'Python · Node.js · PostgreSQL' },
+  { title: 'UI/UX Design', icon: Layers3, copy: 'Turn complex workflows into clear interfaces with user flows, prototypes, and accessible design systems.', tools: 'Prototyping · Design systems' },
+  { title: 'Maintenance & Support', icon: ShieldCheck, copy: 'Keep existing products dependable with updates, performance improvements, and practical handoffs.', tools: 'Git · Docker · Performance review' },
+]
+
+const solutions = [
+  { icon: AppWindow, title: 'Customer portals', copy: 'Give customers one place to manage their accounts, submit requests, and see what happens next.' },
+  { icon: Workflow, title: 'Operations workflows', copy: 'Connect approvals, handoffs, and recurring tasks so teams can work from the same information.' },
+  { icon: Activity, title: 'Reporting & dashboards', copy: 'Bring operational data together in dashboards that make priorities, changes, and exceptions easy to see.' },
 ]
 
 const projects = [
@@ -207,9 +224,9 @@ export function App() {
             <div className="wrap hero-inner">
               <div className="hero-copy">
                 <p className="eyebrow hero-eyebrow"><span aria-hidden="true" />Software development studio</p>
-                <h1 id="hero-title">Building Digital<br /> Experiences <em>That Matter</em></h1>
-                <p className="hero-description">BonnO Labs designs and builds scalable web, mobile, and AI products for teams with ambitious ideas.</p>
-                <div className="hero-actions flex flex-wrap justify-center gap-3">
+                <h1 id="hero-title">Software with<br /> <em>a clear purpose.</em></h1>
+                <p className="hero-description">BonnO Labs designs and builds web products, mobile apps, and automation around the way your customers and teams actually work.</p>
+                <div className="hero-actions flex flex-wrap gap-3">
                   <a className="button button-primary" href="#contact">Start a project</a>
                   <a className="button button-outline" href="#services">Explore services</a>
                 </div>
@@ -219,14 +236,30 @@ export function App() {
 
           <section id="services" className="section" aria-labelledby="services-title">
             <div className="wrap">
-              <SectionHeading label="Services" title="What we build" id="services-title"
-                description="Software development and design for new products and existing systems." />
+              <SectionHeading label="Services" title="From first release to what comes next." id="services-title"
+                description="Product design and engineering for teams launching something new or improving software they already rely on." />
               <div className="services-grid">
-                {services.map(({ title, icon: Icon, copy }) => (
+                {capabilities.map(({ title, icon: Icon, copy, tools }) => (
                   <article className="service-card" key={title}>
                     <div className="icon-tile"><Icon size={22} aria-hidden="true" /></div>
                     <h3>{title}</h3>
                     <p>{copy}</p>
+                    <span className="card-tools">{tools}</span>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="solutions" className="section solutions-section" aria-labelledby="solutions-title">
+            <div className="wrap solutions-grid">
+              <SectionHeading label="Solutions" title="Make the work easier." id="solutions-title"
+                description="Start with the part of the business that needs to work better. These are examples of where we can help." />
+              <div className="solution-list">
+                {solutions.map(({ title, icon: Icon, copy }) => (
+                  <article className="solution-row" key={title}>
+                    <Icon size={23} aria-hidden="true" />
+                    <div><h3>{title}</h3><p>{copy}</p></div>
                   </article>
                 ))}
               </div>
@@ -235,8 +268,8 @@ export function App() {
 
           <section id="technologies" className="section section-tinted" aria-labelledby="technologies-title">
             <div className="wrap">
-              <SectionHeading label="Technologies" title="Our toolkit" id="technologies-title"
-                description="We choose tools around the product, its users, and the people who will maintain it." />
+              <SectionHeading label="Technologies" title="Tools that fit the job." id="technologies-title"
+                description="We choose the stack around the product’s needs and what your team can maintain after launch." />
               <div className="tech-grid grid gap-4 md:grid-cols-3">
                 {technologies.map(({ title, icon: Icon, items }) => (
                   <article className="tech-card" key={title}>
@@ -252,10 +285,10 @@ export function App() {
 
           <section id="about" className="section" aria-labelledby="about-title">
             <div className="wrap about-grid">
-              <SectionHeading label="About us" title="Built for a wider world" id="about-title" />
+              <SectionHeading label="About us" title="A studio for thoughtful software." id="about-title" />
               <div className="about-copy">
-                <p>BonnO Labs brings product design and software engineering together. Our approach is designed for collaboration across borders, with clear decisions, shared priorities, and handoffs that work across time zones.</p>
-                <p>From a focused first release to a growing product, we build for scale with accessible interfaces, maintainable code, and architecture that can evolve with your needs.</p>
+                <p>BonnO Labs brings product design and software engineering into the same conversation. We start with the people using the software and the problem they need it to solve.</p>
+                <p>We turn that understanding into clear priorities, accessible interfaces, and maintainable code. We plan for written decisions and handoffs that work across time zones.</p>
               </div>
             </div>
           </section>

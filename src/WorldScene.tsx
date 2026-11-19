@@ -1,9 +1,10 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
-  AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, Group, InstancedMesh,
-  MathUtils, Object3D, PointLight, ShaderMaterial, Vector3,
+  AdditiveBlending, BufferGeometry, Color, ExtrudeGeometry, Float32BufferAttribute, Group, InstancedMesh,
+  MathUtils, Object3D, Path, PMREMGenerator, PointLight, ShaderMaterial, Shape, Vector3,
 } from 'three'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 
 const mint = '#26d9c3'
 const violet = '#7958f5'
@@ -18,6 +19,7 @@ const panLook = new Vector3()
 const flight = [
   { section: '.hero', pose: [0, 0.3, 12, 0.5, -0.1, -11] },
   { section: '#services', pose: [3.8, 1.6, -12, -2.8, 0.1, -36] },
+  { section: '#solutions', pose: [-1.0, 1.1, -24, -0.2, -0.3, -49] },
   { section: '#technologies', pose: [-4.5, -0.8, -37, 1.5, 0.6, -62] },
   { section: '#about', pose: [3.5, -1.7, -62, -2.8, 0.9, -87] },
   { section: '#portfolio', pose: [-4.3, 1.4, -87, 2.9, -0.5, -111] },
@@ -142,12 +144,12 @@ function Shards() {
     const object = new Object3D()
     const random = MathUtils.seededRandom
     random(2087)
-    for (let index = 0; index < 112; index++) {
+    for (let index = 0; index < 86; index++) {
       const side = index % 2 ? 1 : -1
       const x = side * (5.2 + random() * 13)
       const y = (random() - 0.5) * 19
       const z = 12 - random() * 184
-      const size = 0.13 + random() * 0.59
+      const size = 0.11 + random() * 0.48
       object.position.set(x, y, z)
       object.rotation.set(random() * 3, random() * 3, random() * 3)
       object.scale.set(size * (0.72 + random()), size * (0.7 + random()), size)
@@ -160,15 +162,51 @@ function Shards() {
     mesh.computeBoundingSphere()
   }, [])
   return (
-    <instancedMesh ref={shards} args={[undefined, undefined, 112]}>
+    <instancedMesh ref={shards} args={[undefined, undefined, 86]}>
       <octahedronGeometry args={[1, 0]} />
       <meshStandardMaterial color="#bccaed" emissive="#372360" emissiveIntensity={0.35} metalness={0.5} roughness={0.31} />
     </instancedMesh>
   )
 }
 
+function opticalFrame(lobes: number) {
+  const shape = new Shape()
+  const aperture = new Path()
+  const detail: number[] = []
+  for (let step = 0; step < 128; step++) {
+    const angle = step / 128 * Math.PI * 2
+    const wave = Math.cos(angle * Math.min(lobes, 8)) * 0.22 + Math.sin(angle * 3) * 0.43
+    const outside = 7.64 + wave
+    const inside = 6.99 + wave
+    const x = Math.cos(angle)
+    const y = Math.sin(angle) * 0.93
+    if (!step) {
+      shape.moveTo(x * outside, y * outside)
+      aperture.moveTo(x * inside, y * inside)
+    } else {
+      shape.lineTo(x * outside, y * outside)
+      aperture.lineTo(x * inside, y * inside)
+    }
+    detail.push(x * (inside + 0.12), y * (inside + 0.12), 0.41)
+  }
+  shape.closePath()
+  aperture.closePath()
+  shape.holes.push(aperture)
+  const metal = new ExtrudeGeometry(shape, {
+    steps: 1, depth: 0.33, bevelEnabled: true, bevelThickness: 0.095, bevelSize: 0.105, bevelSegments: 3,
+  })
+  const line = new BufferGeometry()
+  line.setAttribute('position', new Float32BufferAttribute(detail, 3))
+  return { metal, line }
+}
+
 function Gate({ color, accent, sides }: Pick<(typeof chambers)[number], 'color' | 'accent' | 'sides'>) {
   const glow = useMemo(() => ({ tint: { value: new Color(color) } }), [color])
+  const frame = useMemo(() => opticalFrame(sides), [sides])
+  useEffect(() => () => {
+    frame.metal.dispose()
+    frame.line.dispose()
+  }, [frame])
 
   return (
     <>
@@ -177,14 +215,11 @@ function Gate({ color, accent, sides }: Pick<(typeof chambers)[number], 'color' 
         <shaderMaterial uniforms={glow} vertexShader={hazeVertex} fragmentShader={hazeFragment}
           transparent depthWrite={false} blending={AdditiveBlending} />
       </mesh>
-      <mesh rotation={[0, 0, 0.18]}>
-        <torusGeometry args={[7.2, 0.19, 6, sides, Math.PI * 1.82]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.48} metalness={0.65} roughness={0.25} />
+      <mesh geometry={frame.metal}>
+        <meshPhysicalMaterial color={color} emissive={color} emissiveIntensity={0.18}
+          metalness={0.72} roughness={0.23} clearcoat={0.72} clearcoatRoughness={0.24} />
       </mesh>
-      <mesh position={[0, 0, 0.22]} rotation={[0, 0, 0.18]}>
-        <torusGeometry args={[7.18, 0.038, 4, sides, Math.PI * 1.8]} />
-        <meshBasicMaterial color={accent} />
-      </mesh>
+      <lineLoop geometry={frame.line}><lineBasicMaterial color={accent} transparent opacity={0.81} /></lineLoop>
       <mesh position={[0.1, -0.1, -1.45]} rotation={[0.15, -0.18, 1.4]}>
         <torusGeometry args={[8.85, 0.042, 5, 56, Math.PI * 1.49]} />
         <meshBasicMaterial color={color} transparent opacity={0.64} />
@@ -215,6 +250,8 @@ function Crystal({ color, accent }: { color: string; accent: string }) {
 
 function FlightWorld({ onReady, onLoss }: WorldProps) {
   const rig = useThree(state => state.camera)
+  const renderer = useThree(state => state.gl)
+  const scene = useThree(state => state.scene)
   const canvas = useThree(state => state.gl.domElement)
   const invalidate = useThree(state => state.invalidate)
   const guideLight = useRef<PointLight>(null)
@@ -226,6 +263,20 @@ function FlightWorld({ onReady, onLoss }: WorldProps) {
   const lines = useMemo(flightLines, [])
   const dustMaterial = useRef<ShaderMaterial>(null)
   const dustUniforms = useMemo(() => ({ time: { value: 0 } }), [])
+
+  useEffect(() => {
+    const room = new RoomEnvironment()
+    const generator = new PMREMGenerator(renderer)
+    const lightMap = generator.fromScene(room, 0.08)
+    scene.environment = lightMap.texture
+    scene.environmentIntensity = 0.8
+    room.dispose()
+    generator.dispose()
+    return () => {
+      scene.environment = null
+      lightMap.dispose()
+    }
+  }, [renderer, scene])
 
   const requestFrame = useCallback((interactive: boolean) => {
     const active = motion.current
