@@ -6,6 +6,7 @@ import {
   Smartphone, Sparkles, X,
 } from 'lucide-react'
 import { LazyMotion, MotionConfig, domAnimation, m, useReducedMotion } from 'motion/react'
+import { HeroVisual } from './HeroVisual'
 
 const links = [
   ['Services', '#services'],
@@ -92,12 +93,16 @@ function SectionHeading({ label, title, id, description }: {
   id: string
   description?: string
 }) {
+  const reduceMotion = useReducedMotion()
+
   return (
-    <div className="section-heading">
+    <m.div className="section-heading" initial={reduceMotion ? false : { y: 10 }}
+      whileInView={reduceMotion ? undefined : { y: 0 }}
+      viewport={{ once: true, amount: 0.4 }} transition={{ duration: 0.36, ease: 'easeOut' }}>
       <p className="eyebrow">{label}</p>
       <h2 id={id}>{title}</h2>
       {description && <p className="section-description">{description}</p>}
-    </div>
+    </m.div>
   )
 }
 
@@ -207,17 +212,14 @@ export function App() {
         <main id="main" tabIndex={-1}>
           <section className="hero" aria-labelledby="hero-title">
             <div className="wrap hero-inner">
-              <picture className="hero-art">
-                <source media="(max-width: 760px)" srcSet="/hero-small.webp" />
-                <img src="/hero.webp" alt="" width="1536" height="1024" fetchPriority="high" />
-              </picture>
+              <HeroVisual />
               <m.div className="hero-copy"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={reduceMotion ? false : { y: 10 }}
+                animate={{ y: 0 }}
                 transition={{ duration: reduceMotion ? 0 : 0.42, ease: 'easeOut' }}>
                 <p className="eyebrow hero-eyebrow"><span aria-hidden="true" />Software development studio</p>
                 <h1 id="hero-title">Building Digital<br className="hero-break" /> Experiences<br className="hero-break" /> <em>That Matter</em></h1>
-                <p className="hero-description">BonnO Labs designs and builds web, mobile, and AI products around the people who use them.</p>
+                <p className="hero-description">BonnO Labs designs and builds scalable web, mobile, and AI products for teams with ambitious ideas.</p>
                 <div className="hero-actions flex flex-wrap gap-3">
                   <a className="button button-primary" href="#contact">Start a project</a>
                   <a className="button button-outline" href="#services">Explore services</a>
@@ -261,10 +263,10 @@ export function App() {
 
           <section id="about" className="section" aria-labelledby="about-title">
             <div className="wrap about-grid">
-              <SectionHeading label="About us" title="Design and engineering, together" id="about-title" />
+              <SectionHeading label="About us" title="Built for a wider world" id="about-title" />
               <div className="about-copy">
-                <p>BonnO Labs is a software development agency. We work across product design and engineering to turn an idea or an existing workflow into software people can use with confidence.</p>
-                <p>We start by understanding what the product needs to do. From there, we make decisions about scope, design, and technology with accessibility and maintainability in mind.</p>
+                <p>BonnO Labs brings product design and software engineering together. Our approach is designed for collaboration across borders, with clear decisions, shared priorities, and handoffs that work across time zones.</p>
+                <p>From a focused first release to a growing product, we build for scale with accessible interfaces, maintainable code, and architecture that can evolve with your needs.</p>
               </div>
             </div>
           </section>
