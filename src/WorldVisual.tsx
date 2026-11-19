@@ -1,7 +1,7 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-const OrbitScene = lazy(() => import('./OrbitScene'))
+const WorldScene = lazy(() => import('./WorldScene'))
 
 class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => void }, { failed: boolean }> {
   state = { failed: false }
@@ -19,45 +19,42 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
   }
 }
 
-export function HeroVisual() {
-  const stage = useRef<HTMLDivElement>(null)
+export function WorldVisual() {
   const [enabled, setEnabled] = useState(false)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const showFallback = useCallback(() => setFailed(true), [])
 
   useEffect(() => {
-    const element = stage.current
-    if (!element || !window.WebGL2RenderingContext) return
+    if (!window.WebGL2RenderingContext) return
 
-    const preference = window.matchMedia('(min-width: 1041px) and (prefers-reduced-motion: no-preference)')
+    const preference = window.matchMedia('(min-width: 901px) and (prefers-reduced-motion: no-preference)')
+    const forcedColors = window.matchMedia('(forced-colors: active)')
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
-    let nearby = false
     let delay: number | undefined
 
     function update() {
       window.clearTimeout(delay)
-      if (!preference.matches || connection?.saveData) {
+      if (!preference.matches || forcedColors.matches || connection?.saveData) {
         setEnabled(false)
         setReady(false)
         return
       }
-      if (nearby && document.readyState === 'complete') {
+      if (!document.hidden && document.readyState === 'complete') {
         delay = window.setTimeout(() => setEnabled(true), 180)
       }
     }
 
-    const observer = new IntersectionObserver(([entry]) => {
-      nearby = entry.isIntersecting
-      update()
-    }, { rootMargin: '100px' })
-    observer.observe(element)
+    update()
     preference.addEventListener('change', update)
+    forcedColors.addEventListener('change', update)
+    document.addEventListener('visibilitychange', update)
     window.addEventListener('load', update)
     return () => {
       window.clearTimeout(delay)
-      observer.disconnect()
       preference.removeEventListener('change', update)
+      forcedColors.removeEventListener('change', update)
+      document.removeEventListener('visibilitychange', update)
       window.removeEventListener('load', update)
     }
   }, [])
@@ -66,13 +63,13 @@ export function HeroVisual() {
   const isLive = showScene && ready
 
   return (
-    <div className="hero-world" ref={stage} aria-hidden="true" data-scene={isLive ? 'webgl' : 'fallback'}>
-      <div className="hero-art" />
+    <div className="world-visual" aria-hidden="true" data-scene={isLive ? 'webgl' : 'fallback'}>
+      <div className="world-fallback" />
       {showScene && (
-        <div className="hero-canvas">
+        <div className="world-canvas">
           <SceneBoundary onFailure={showFallback}>
             <Suspense fallback={null}>
-              <OrbitScene stage={stage} onReady={setReady} onLoss={showFallback} />
+              <WorldScene onReady={setReady} onLoss={showFallback} />
             </Suspense>
           </SceneBoundary>
         </div>

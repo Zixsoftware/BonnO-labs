@@ -5,7 +5,7 @@ import {
   CodeXml, Database, Layers3, Mail, Menu, Orbit, Send, ShieldCheck,
   Smartphone, Sparkles, X,
 } from 'lucide-react'
-import { HeroVisual } from './HeroVisual'
+import { WorldVisual } from './WorldVisual'
 
 const links = [
   ['Services', '#services'],
@@ -198,25 +198,22 @@ function ContactForm() {
 export function App() {
   return (
     <>
+        <WorldVisual />
         <a className="skip-link" href="#main">Skip to content</a>
         <div id="home" />
         <Header />
         <main id="main" tabIndex={-1}>
-          <div className="scene-rail" aria-hidden="true">
-            <div className="scene-sticky"><HeroVisual /></div>
-          </div>
           <section className="hero" aria-labelledby="hero-title">
             <div className="wrap hero-inner">
               <div className="hero-copy">
                 <p className="eyebrow hero-eyebrow"><span aria-hidden="true" />Software development studio</p>
-                <h1 id="hero-title">Building Digital<br className="hero-break" /> Experiences<br className="hero-break" /> <em>That Matter</em></h1>
+                <h1 id="hero-title">Building Digital<br /> Experiences <em>That Matter</em></h1>
                 <p className="hero-description">BonnO Labs designs and builds scalable web, mobile, and AI products for teams with ambitious ideas.</p>
-                <div className="hero-actions flex flex-wrap gap-3">
+                <div className="hero-actions flex flex-wrap justify-center gap-3">
                   <a className="button button-primary" href="#contact">Start a project</a>
                   <a className="button button-outline" href="#services">Explore services</a>
                 </div>
               </div>
-              <div className="hero-mobile-art" aria-hidden="true" />
             </div>
           </section>
 
