@@ -30,7 +30,7 @@ export function HeroVisual() {
     const element = stage.current
     if (!element || !window.WebGL2RenderingContext) return
 
-    const preference = window.matchMedia('(min-width: 901px) and (prefers-reduced-motion: no-preference)')
+    const preference = window.matchMedia('(min-width: 1041px) and (prefers-reduced-motion: no-preference)')
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
     let nearby = false
     let delay: number | undefined
@@ -67,10 +67,7 @@ export function HeroVisual() {
 
   return (
     <div className="hero-world" ref={stage} aria-hidden="true" data-scene={isLive ? 'webgl' : 'fallback'}>
-      <picture className="hero-art">
-        <source media="(max-width: 900px)" srcSet="/hero-small.webp" />
-        <img src="/hero.webp" alt="" width="1000" height="859" fetchPriority="high" />
-      </picture>
+      <div className="hero-art" />
       {showScene && (
         <div className="hero-canvas">
           <SceneBoundary onFailure={showFallback}>

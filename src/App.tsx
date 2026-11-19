@@ -5,7 +5,6 @@ import {
   CodeXml, Database, Layers3, Mail, Menu, Orbit, Send, ShieldCheck,
   Smartphone, Sparkles, X,
 } from 'lucide-react'
-import { LazyMotion, MotionConfig, domAnimation, m, useReducedMotion } from 'motion/react'
 import { HeroVisual } from './HeroVisual'
 
 const links = [
@@ -93,16 +92,12 @@ function SectionHeading({ label, title, id, description }: {
   id: string
   description?: string
 }) {
-  const reduceMotion = useReducedMotion()
-
   return (
-    <m.div className="section-heading" initial={reduceMotion ? false : { y: 10 }}
-      whileInView={reduceMotion ? undefined : { y: 0 }}
-      viewport={{ once: true, amount: 0.4 }} transition={{ duration: 0.36, ease: 'easeOut' }}>
+    <div className="section-heading">
       <p className="eyebrow">{label}</p>
       <h2 id={id}>{title}</h2>
       {description && <p className="section-description">{description}</p>}
-    </m.div>
+    </div>
   )
 }
 
@@ -201,22 +196,18 @@ function ContactForm() {
 }
 
 export function App() {
-  const reduceMotion = useReducedMotion()
-
   return (
-    <MotionConfig reducedMotion="user">
-      <LazyMotion features={domAnimation} strict>
+    <>
         <a className="skip-link" href="#main">Skip to content</a>
         <div id="home" />
         <Header />
         <main id="main" tabIndex={-1}>
+          <div className="scene-rail" aria-hidden="true">
+            <div className="scene-sticky"><HeroVisual /></div>
+          </div>
           <section className="hero" aria-labelledby="hero-title">
             <div className="wrap hero-inner">
-              <HeroVisual />
-              <m.div className="hero-copy"
-                initial={reduceMotion ? false : { y: 10 }}
-                animate={{ y: 0 }}
-                transition={{ duration: reduceMotion ? 0 : 0.42, ease: 'easeOut' }}>
+              <div className="hero-copy">
                 <p className="eyebrow hero-eyebrow"><span aria-hidden="true" />Software development studio</p>
                 <h1 id="hero-title">Building Digital<br className="hero-break" /> Experiences<br className="hero-break" /> <em>That Matter</em></h1>
                 <p className="hero-description">BonnO Labs designs and builds scalable web, mobile, and AI products for teams with ambitious ideas.</p>
@@ -224,7 +215,8 @@ export function App() {
                   <a className="button button-primary" href="#contact">Start a project</a>
                   <a className="button button-outline" href="#services">Explore services</a>
                 </div>
-              </m.div>
+              </div>
+              <div className="hero-mobile-art" aria-hidden="true" />
             </div>
           </section>
 
@@ -318,7 +310,6 @@ export function App() {
             <p className="copyright">© {new Date().getFullYear()} BonnO Labs.</p>
           </div>
         </footer>
-      </LazyMotion>
-    </MotionConfig>
+    </>
   )
 }

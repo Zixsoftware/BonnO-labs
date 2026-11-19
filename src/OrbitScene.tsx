@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import {
   BufferGeometry, Color, Curve, Float32BufferAttribute, Group, MathUtils, Vector3,
@@ -8,10 +8,30 @@ import {
 const violet = '#7958F5'
 const mint = '#26D9C3'
 const twoPi = Math.PI * 2
-const camera = { position: [0, 0, 8.9] as [number, number, number], fov: 34, near: 0.1, far: 28 }
-const contextOptions = { alpha: true, antialias: true, powerPreference: 'low-power' as const }
+const camera = { position: [0, 0, 8.65] as [number, number, number], fov: 35, near: 0.1, far: 28 }
+const contextOptions = { alpha: true, antialias: true }
 const dpr = [1, 1.35] as [number, number]
 const canvasResize = { scroll: false }
+const minimumFrameInterval = 1000 / 75
+
+// Position, rotation and camera position are keyed to the document sections.
+const choreography = [
+  { section: '.hero', pose: [0.05, 0.04, 0, 0.24, -0.42, -0.22, 0, 0, 8.65] },
+  { section: '#services', pose: [0.52, 0.37, 0.15, -0.41, 0.68, 0.55, 0.51, 0.28, 8.65] },
+  { section: '#technologies', pose: [-0.53, -0.46, 0.17, 0.59, 1.52, 1.24, -0.49, -0.32, 8.35] },
+  { section: '#about', pose: [0.42, 0.42, 0.28, -0.33, 2.45, 1.73, 0.45, 0.4, 8.85] },
+  { section: '#portfolio', pose: [-0.42, -0.22, 0.15, 0.43, 3.32, 2.31, -0.44, -0.18, 8.65] },
+  { section: '#contact', pose: [0.32, 0.28, 0.05, -0.54, 4.38, 2.91, 0.4, 0.28, 8.6] },
+] as const
+type ScrollStop = { scroll: number; pose: readonly number[] }
+
+function scrollStops(main: HTMLElement): ScrollStop[] {
+  return choreography.flatMap(({ section, pose }, index) => {
+    const element = main.querySelector(section)
+    if (!element) return []
+    return [{ scroll: index === 0 ? 0 : element.getBoundingClientRect().top + window.scrollY - 155, pose }]
+  })
+}
 
 function ribbonPoint(t: number, width: number, depth: number) {
   const radius = 1.42 + 0.39 * Math.cos(3 * t)
@@ -74,7 +94,7 @@ function makeRibbon() {
 
 function makeDust() {
   const positions: number[] = []
-  for (let index = 0; index < 84; index++) {
+  for (let index = 0; index < 48; index++) {
     const angle = index * 2.399963
     const radius = 1.9 + ((index * 37) % 89) / 56
     positions.push(Math.sin(angle) * radius, Math.cos(angle) * radius * 0.81, ((index * 43) % 97) / 49 - 1.25)
@@ -91,107 +111,120 @@ type SceneProps = {
 function OrbitalAssembly({ stage, onReady, onLoss }: SceneProps) {
   const sculpture = useRef<Group>(null)
   const surroundings = useRef<Group>(null)
-  const target = useRef({ visible: true, scroll: 0, x: 0, y: 0 })
+  const target = useRef({ visible: true, scroll: 0, width: 1, height: 1, stops: [] as ScrollStop[] })
+  const fittedPose = useRef<number[]>([...choreography[0].pose])
   const firstFrame = useRef(true)
+  const lastFrame = useRef(-Infinity)
+  const pendingFrame = useRef<number | undefined>(undefined)
   const invalidate = useThree((state) => state.invalidate)
+  const sceneCamera = useThree((state) => state.camera)
   const canvas = useThree((state) => state.gl.domElement)
   const ribbon = useMemo(makeRibbon, [])
   const dust = useMemo(makeDust, [])
   const mintEdge = useMemo(() => new RibbonEdge(0.26, 0.071), [])
   const violetEdge = useMemo(() => new RibbonEdge(-0.26, -0.071), [])
 
+  const requestFrame = useCallback(() => {
+    if (!target.current.visible || document.hidden || pendingFrame.current !== undefined) return
+    const delay = minimumFrameInterval - (performance.now() - lastFrame.current)
+    if (delay <= 0) {
+      invalidate()
+      return
+    }
+    pendingFrame.current = window.setTimeout(() => {
+      pendingFrame.current = undefined
+      if (target.current.visible && !document.hidden) invalidate()
+    }, delay)
+  }, [invalidate])
+
   useEffect(() => () => ribbon.dispose(), [ribbon])
 
   useEffect(() => {
     const area = stage.current
-    const hero = area?.closest<HTMLElement>('.hero')
-    if (!area || !hero) return
-    let height = area.clientHeight
-
-    function invalidateVisible() {
-      if (target.current.visible && !document.hidden) invalidate()
-    }
+    const main = area?.closest<HTMLElement>('main')
+    if (!area || !main) return
 
     function scroll() {
-      target.current.scroll = MathUtils.clamp(window.scrollY / (height + 80), 0, 1)
-      invalidateVisible()
+      target.current.scroll = window.scrollY
+      requestFrame()
     }
 
-    function point(event: PointerEvent) {
-      const { left, top, width, height } = hero!.getBoundingClientRect()
-      target.current.x = ((event.clientX - left) / width - 0.5) * 0.3
-      target.current.y = ((event.clientY - top) / height - 0.5) * 0.26
-      invalidateVisible()
-    }
-
-    function resetPointer() {
-      target.current.x = target.current.y = 0
-      invalidateVisible()
-    }
-
-    const resize = new ResizeObserver(() => {
-      height = area.clientHeight
+    function measure() {
+      target.current.stops = scrollStops(main!)
+      target.current.width = area!.clientWidth
+      target.current.height = area!.clientHeight
       scroll()
-    })
+    }
+    const resize = new ResizeObserver(measure)
+    resize.observe(main)
     resize.observe(area)
     const visibility = new IntersectionObserver(([entry]) => {
       target.current.visible = entry.isIntersecting
       if (entry.isIntersecting) scroll()
-    })
+    }, { threshold: 0.05 })
     visibility.observe(area)
     window.addEventListener('scroll', scroll, { passive: true })
-    document.addEventListener('visibilitychange', invalidateVisible)
-    hero.addEventListener('pointermove', point, { passive: true })
-    hero.addEventListener('pointerleave', resetPointer)
+    document.addEventListener('visibilitychange', requestFrame)
     canvas.addEventListener('webglcontextlost', onLoss)
-    scroll()
+    measure()
 
     return () => {
       resize.disconnect()
       visibility.disconnect()
       window.removeEventListener('scroll', scroll)
-      document.removeEventListener('visibilitychange', invalidateVisible)
-      hero.removeEventListener('pointermove', point)
-      hero.removeEventListener('pointerleave', resetPointer)
+      document.removeEventListener('visibilitychange', requestFrame)
       canvas.removeEventListener('webglcontextlost', onLoss)
+      window.clearTimeout(pendingFrame.current)
+      pendingFrame.current = undefined
     }
-  }, [canvas, invalidate, onLoss, stage])
+  }, [canvas, onLoss, requestFrame, stage])
 
   useFrame((_, delta) => {
+    lastFrame.current = performance.now()
     const object = sculpture.current
     const rings = surroundings.current
-    const { visible, scroll, x, y } = target.current
-    if (!object || !rings || !visible || document.hidden) return
-    const next = [
-      [object.rotation, 'x', 0.24 + y + scroll * 0.42],
-      [object.rotation, 'y', -0.37 + x + scroll * 0.96],
-      [object.rotation, 'z', -0.21 + scroll * 0.42],
-      [object.position, 'y', 0.06 + scroll * 0.64],
-      [rings.rotation, 'y', 0.15 + x * 0.42 + scroll * 0.26],
-      [rings.rotation, 'z', -0.12 + scroll * 0.34],
-    ] as const
+    const { visible, scroll, width, height, stops } = target.current
+    if (!object || !rings || !visible || document.hidden || width < 1 || height < 1 || stops.length === 0) return
+
+    const index = stops.findIndex((stop) => stop.scroll >= scroll)
+    const after = stops[index < 0 ? stops.length - 1 : index]
+    const before = index > 0 ? stops[index - 1] : after
+    const fraction = before === after ? 0 : MathUtils.clamp((scroll - before.scroll) / (after.scroll - before.scroll), 0, 1)
+    const pose = fittedPose.current
     let moving = false
-    for (const [transform, axis, goal] of next) {
-      const value = firstFrame.current ? goal : MathUtils.damp(transform[axis], goal, 5, Math.min(delta, 0.05))
-      transform[axis] = value
+    for (let i = 0; i < pose.length; i++) {
+      const goal = MathUtils.lerp(before.pose[i], after.pose[i], fraction)
+      const value = firstFrame.current ? goal : MathUtils.damp(pose[i], goal, 7, Math.min(delta, 0.05))
+      pose[i] = value
       moving ||= Math.abs(value - goal) > 0.001
     }
+    const [x, y, z, pitch, yaw, roll, cameraX, cameraY, cameraZ] = pose
+    const fit = Math.min(1.05, Math.max(0.6, (width / height) * 1.17))
+    object.scale.setScalar(fit)
+    object.position.set(x * fit, y * fit, z)
+    object.rotation.set(pitch, yaw, roll)
+    rings.scale.setScalar(fit)
+    rings.position.set(x * fit * 0.38, y * fit * 0.42, -0.22)
+    rings.rotation.set(pitch * 0.23, yaw * 0.24, roll * 0.31)
+    sceneCamera.position.set(cameraX, cameraY, cameraZ)
+    sceneCamera.lookAt(0, 0, 0)
     if (firstFrame.current) {
       firstFrame.current = false
       onReady(true)
     }
-    if (moving) invalidate()
+    if (moving) requestFrame()
   })
 
   return (
     <>
-      <hemisphereLight args={['#c7cfff', '#281358', 1.45]} />
-      <directionalLight position={[-3, 4, 4]} color="#c8ddff" intensity={3.8} />
-      <directionalLight position={[3, 1, -3]} color={violet} intensity={3.4} />
-      <pointLight position={[2.5, -3, 3]} color={mint} intensity={31} />
+      <hemisphereLight args={['#c7cfff', '#281358', 1.15]} />
+      <directionalLight position={[-3, 4, 4]} color="#e9ecff" intensity={4.25} />
+      <directionalLight position={[3, 1, -3]} color={violet} intensity={4.1} />
+      <pointLight position={[2.5, -3, 3]} color={mint} intensity={38} />
       <group ref={sculpture}>
         <mesh geometry={ribbon}>
-          <meshStandardMaterial vertexColors color="#f4efff" emissive="#302575" emissiveIntensity={0.4} metalness={0.32} roughness={0.31} />
+          <meshPhysicalMaterial vertexColors color="#f4efff" emissive="#37267f" emissiveIntensity={0.46}
+            metalness={0.39} roughness={0.27} clearcoat={0.46} clearcoatRoughness={0.29} />
         </mesh>
         <mesh>
           <tubeGeometry args={[mintEdge, 144, 0.021, 6, true]} />
